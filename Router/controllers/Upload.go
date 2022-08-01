@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,16 @@ func Mkdir(c *gin.Context) {
 		"dirname", json.Filename,
 		"parentid", json.Parentid,
 	)
+	matched, _ := regexp.Match(`/[/\\+?:*<>|"]/`, []byte(json.Filename))
+	if matched == true || json.Filename == "" {
+		//含有/[]+?:*<>|"的字符或空不能创建
+		c.JSON(200, gin.H{
+			"message": "NO",
+			"error":   13,
+			"status":  200,
+		})
+		return
+	}
 	if ok == false {
 		c.JSON(401, gin.H{
 			"message": "NO",
@@ -112,6 +123,7 @@ func Upload(c *gin.Context) {
 		"filelen", len(form.File["upload[]"]),
 		"parentid", form.Value["parentid"][0],
 	)
+	// 1.将上传时限增至12小时，文件上传完成即刻失效防止同时多号上传
 	if ok == false {
 		c.JSON(401, gin.H{
 			"message": "NO",
@@ -164,6 +176,14 @@ func Upload(c *gin.Context) {
 				})
 				return
 			}
+			if Mysql.CheckIsExistSame(file.Filename, parentid) {
+				c.JSON(200, gin.H{
+					"message": "NO",
+					"error":   24,
+					"status":  200,
+				})
+				return
+			}
 			Mysql.AddOldFile(uid, file.Filename, md5Str, "/", fileid, filesize, parentid)
 			Mysql.ChangeStorage(uid, filesize, "+")
 			continue
@@ -175,6 +195,14 @@ func Upload(c *gin.Context) {
 			} else {
 				newFileName = newFileName + string(v)
 			}
+		}
+		if Mysql.CheckIsExistSame(file.Filename, parentid) {
+			c.JSON(200, gin.H{
+				"message": "NO",
+				"error":   24,
+				"status":  200,
+			})
+			return
 		}
 		c.SaveUploadedFile(file, baseURL+uid+"/"+newFileName)
 		fi, err := os.Stat(baseURL + uid + "/" + newFileName)
@@ -192,6 +220,7 @@ func Upload(c *gin.Context) {
 		Mysql.AddFile(uid, newFileName, md5Str, "/", file.Filename, fi.Size(), parentid)
 		Mysql.ChangeStorage(uid, fi.Size(), "+")
 	}
+	Redis.DelUploadKey(c.Param("key"))
 	c.JSON(200, gin.H{
 		"message": "OK",
 		"file":    len(files),

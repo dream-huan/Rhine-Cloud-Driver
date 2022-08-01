@@ -6,6 +6,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"golandproject/Class"
 	"golandproject/common"
+	"golandproject/config"
 	"golandproject/middleware/Geoip2"
 	logger "golandproject/middleware/Log"
 	"os"
@@ -41,7 +42,7 @@ func AddUser(uid string, password string, email string) bool {
 		return false
 	}
 	sqlStr = "insert into storage values(?,?,?)"
-	_, err = tx.Exec(sqlStr, uid, 0, 1073741824) //新用户分配1G内存
+	_, err = tx.Exec(sqlStr, uid, 0, config.GetOriginStorage()) //新用户分配1G内存
 	if err != nil {
 		tx.Rollback()
 		logger.Errorf("事务执行错误:%#v", err)
@@ -138,6 +139,21 @@ func Md5Query(md5 string) (fileid, filesize int64) {
 	_ = db.QueryRow(sqlStr, md5).Scan(&fileid, &filesize)
 	tx.Commit()
 	return fileid, filesize
+}
+
+func CheckIsExistSame(filename string, parentid int64) bool {
+	tx, err := db.Begin()
+	if err != nil {
+		logger.Errorf("事务启动错误:%#v", err)
+		return false
+	}
+	num := 0
+	sqlStr := "select count(*) from file where oldfilename=? and parentid=?"
+	_ = tx.QueryRow(sqlStr).Scan(&num)
+	if num >= 1 {
+		return true
+	}
+	return false
 }
 
 func AddOldFile(uid, filename, md5, path string, fileid, size, parentid int64) bool {

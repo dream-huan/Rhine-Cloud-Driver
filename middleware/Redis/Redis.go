@@ -49,11 +49,16 @@ func AddUploadKey() string {
 			break
 		}
 	}
-	err := rdb.Set(ctx, key, "1", 60*time.Second).Err()
+	err := rdb.Set(ctx, key, "1", 12*60*60*time.Second).Err() //12小时失效
 	if err != nil {
 		return ""
 	}
 	return key
+}
+
+func DelUploadKey(key string) int64 {
+	result, _ := rdb.Del(ctx, key).Result()
+	return result
 }
 
 func GetUploadKey(key string) bool {

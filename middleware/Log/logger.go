@@ -19,7 +19,13 @@ func getEncoder() zapcore.Encoder {
 }
 
 func getLogWriter() zapcore.WriteSyncer {
-	file, _ := os.Create(baseURL + "text.log")
+	file, err := os.OpenFile(baseURL+"access.log", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0777)
+	if err != nil {
+		file, err = os.Create(baseURL + "access.log")
+		if err != nil {
+			Errorw("创建日志文件失败")
+		}
+	}
 	return zapcore.AddSync(file)
 }
 

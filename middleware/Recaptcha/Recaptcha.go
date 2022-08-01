@@ -3,20 +3,21 @@ package Recaptcha
 import (
 	"encoding/json"
 	"golandproject/Class"
+	"golandproject/config"
 	logger "golandproject/middleware/Log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 )
 
-const privatekey = "6LdQ2vsfAAAAAN1e4mUhc9j4-vZd0k0iUHaNIgKR"
+//const privatekey = "6LdQ2vsfAAAAAN1e4mUhc9j4-vZd0k0iUHaNIgKR"
 
 //const privatekey = "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"
 const recaptchaServerName = "https://recaptcha.net/recaptcha/api/siteverify"
 
 func VerifyToken(token string) bool {
 	resp, err := http.PostForm(recaptchaServerName,
-		url.Values{"secret": {privatekey}, "response": {token}})
+		url.Values{"secret": {config.GetPrivateKey()}, "response": {token}})
 	if err != nil {
 		logger.Errorf("httppost错误:%#v", err)
 	}

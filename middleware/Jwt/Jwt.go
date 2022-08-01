@@ -3,6 +3,7 @@ package Jwt
 import (
 	"github.com/dgrijalva/jwt-go"
 	"golandproject/Class"
+	"golandproject/config"
 	logger "golandproject/middleware/Log"
 	"time"
 )
@@ -16,7 +17,7 @@ func GenerateToken(uid string, ip string) (string, error) {
 			Audience:  ip,
 		},
 	}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"))
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(config.GetJwtKey()))
 	if err != nil {
 		logger.Errorf("JWT的token生成错误:%#v", err)
 	}
@@ -25,7 +26,7 @@ func GenerateToken(uid string, ip string) (string, error) {
 
 func TokenValid(token string, ip string) bool {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"), nil
+		return []byte(config.GetJwtKey()), nil
 	})
 	if err != nil {
 		logger.Errorf("JWT的token提取值错误:%#v", err)
@@ -44,7 +45,7 @@ func TokenValid(token string, ip string) bool {
 
 func TokenGetUid(token string) (uid string) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"), nil
+		return []byte(config.GetJwtKey()), nil
 	})
 	if err != nil {
 		logger.Errorf("JWT的得到uid错误:%#v", err)
@@ -56,7 +57,7 @@ func TokenGetUid(token string) (uid string) {
 
 func TokenGetIp(token string) (uid string) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"), nil
+		return []byte(config.GetJwtKey()), nil
 	})
 	if err != nil {
 		return "0.0.0.0"
@@ -67,7 +68,7 @@ func TokenGetIp(token string) (uid string) {
 
 func ParseToken(token string) (*Class.CustomClaims, error) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"), nil
+		return []byte(config.GetJwtKey()), nil
 	})
 	if err != nil {
 		return nil, err
