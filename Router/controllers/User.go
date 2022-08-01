@@ -3,18 +3,29 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"golandproject/Class"
+	"golandproject/common"
 	"golandproject/middleware/Jwt"
+	logger "golandproject/middleware/Log"
 	"golandproject/middleware/Mysql"
 	"golandproject/middleware/Recaptcha"
 	"net/http"
+	"os"
 )
 
 func Register(c *gin.Context) {
 	var json Class.Login
 	if err := c.ShouldBindJSON(&json); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Errorf("从JSON提取值错误:%#v", err)
 		return
 	}
+	logger.Infow("用户操作 注册:",
+		"ip", c.ClientIP(),
+		"uid", json.Uid,
+		"password", json.Password,
+		"email", json.Email,
+		"recaptchatoken", json.RecaptchaToken,
+	)
 	if json.RecaptchaToken == "" || !Recaptcha.VerifyToken(json.RecaptchaToken) {
 		c.JSON(200, gin.H{
 			"message": "NO",
@@ -46,7 +57,18 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+	err := os.Mkdir(baseURL+json.Uid, os.ModePerm)
+	if err != nil {
+		logger.Errorf("创建新文件夹错误:%#v", err)
+		c.JSON(200, gin.H{
+			"message": "NO",
+			"error":   1,
+			"status":  200,
+		})
+		return
+	}
 	isok = Mysql.AddUser(json.Uid, json.Password, json.Email)
+	Mysql.Mkdir(json.Uid, "/", json.Uid, 0)
 	if isok == true {
 		c.JSON(200, gin.H{
 			"message": "OK",
@@ -65,16 +87,14 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	var json Class.Login
 	_ = c.ShouldBindJSON(&json)
-	//if err := c.ShouldBindJSON(&json); err != nil {
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	//	return
-	//}
 	uid := json.Uid
 	password := json.Password
-	token, _ := c.Cookie("token")
-	//获取IP地址
-	ip := c.ClientIP()
-	if token == "" && (json.RecaptchaToken == "" || !Recaptcha.VerifyToken(json.RecaptchaToken)) {
+	logger.Infow("用户操作 登录:",
+		"ip", c.ClientIP(),
+		"uid", json.Uid,
+		"password", json.Password,
+	)
+	if json.RecaptchaToken == "" || !Recaptcha.VerifyToken(json.RecaptchaToken) {
 		c.JSON(200, gin.H{
 			"message": "NO",
 			"error":   7,
@@ -82,33 +102,16 @@ func Login(c *gin.Context) {
 		})
 		return
 	}
-	//密码验证自动延长token时间
-	if token == "" && uid != "" && password != "" && Mysql.VerifyPassword(uid, password) == true {
-		token, _ := Jwt.GenerateToken(json.Uid, ip)
+	if uid != "" && password != "" && Mysql.VerifyPassword(uid, password) == true {
+		token, _ := Jwt.GenerateToken(json.Uid, c.ClientIP())
 		c.JSON(200, gin.H{
 			"message": "OK",
 			"error":   -1,
 			"status":  200,
 			"token":   token,
 		})
-		Mysql.AddLoginRecord(uid, ip)
-	} else if token != "" { //使用token登录则不延长
-		ip = Jwt.TokenGetIp(token)
-		if Jwt.TokenValid(token, ip) {
-			c.JSON(200, gin.H{
-				"message": "OK",
-				"error":   -1,
-				"status":  200,
-			})
-			Mysql.AddLoginRecord(Jwt.TokenGetUid(token), ip)
-		} else {
-			c.JSON(401, gin.H{
-				"message": "NO",
-				"error":   3,
-				"status":  401,
-			})
-		}
-	} else { //密码也不行 token也不行 登录失败
+		Mysql.AddLoginRecord(uid, c.ClientIP())
+	} else {
 		c.JSON(200, gin.H{
 			"message": "NO",
 			"error":   1,
@@ -118,17 +121,35 @@ func Login(c *gin.Context) {
 }
 
 func EditPassword(c *gin.Context) {
+	token, err := c.Cookie("token")
+	if err != nil {
+		logger.Errorf("token获取错误:%#v", err)
+		return
+	}
 	var json Class.Login
-	_ = c.ShouldBindJSON(&json)
-	//if err := c.ShouldBindJSON(&json); err != nil {
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	//	return
-	//}
+	err = c.ShouldBindJSON(&json)
+	if err != nil {
+		logger.Errorf("从JSON提取值错误:%#v", err)
+		return
+	}
+	ok, uid := common.VerifyUser(c.ClientIP(), token)
+	logger.Infow("用户操作 修改密码:",
+		"ip", c.ClientIP(),
+		"uid", uid,
+		"token", token,
+		"ok", ok,
+		"newpassword", json.Password,
+	)
+	if ok == false {
+		c.JSON(401, gin.H{
+			"message": "NO",
+			"error":   3,
+			"status":  401,
+		})
+		return
+	}
 	password := json.Password
-	token, _ := c.Cookie("token")
 	passwordLen := len(json.Password)
-	//密码验证自动延长token时间
-	uid := Jwt.TokenGetUid(token)
 	if passwordLen < 1 || passwordLen > 20 {
 		c.JSON(200, gin.H{
 			"message": "NO",
@@ -152,43 +173,60 @@ func EditPassword(c *gin.Context) {
 }
 
 func GetInfo(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	//获取IP地址
-	ip := c.ClientIP()
-	ip = Jwt.TokenGetIp(token)
-	if Jwt.TokenValid(token, ip) {
-		info := Mysql.GetInfo(Jwt.TokenGetUid(token))
-		c.JSON(200, gin.H{
-			"uid":         info.Uid,
-			"email":       info.Email,
-			"create_time": info.Create_time,
-			"message":     "OK",
-			"error":       -1,
-			"status":      200,
-		})
-	} else {
+	token, err := c.Cookie("token")
+	if err != nil {
+		logger.Errorf("token获取错误:%#v", err)
+		return
+	}
+	ok, uid := common.VerifyUser(c.ClientIP(), token)
+	logger.Infow("用户操作 获取个人信息:",
+		"ip", c.ClientIP(),
+		"uid", uid,
+		"token", token,
+		"ok", ok,
+	)
+	if ok == false {
 		c.JSON(401, gin.H{
 			"message": "NO",
 			"error":   3,
 			"status":  401,
 		})
+		return
 	}
+	info := Mysql.GetInfo(uid)
+	c.JSON(200, gin.H{
+		"uid":          info.Uid,
+		"email":        info.Email,
+		"create_time":  info.Create_time,
+		"usedstorage":  info.Usedstorage,
+		"totalstorage": info.Totalstorage,
+		"message":      "OK",
+		"error":        -1,
+		"status":       200,
+	})
 }
 
 func GetIpRecord(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	//获取IP地址
-	ip := c.ClientIP()
-	ip = Jwt.TokenGetIp(token)
-	//密码验证自动延长token时间
-	if Jwt.TokenValid(token, ip) {
-		iprecord := Mysql.GetIpRecord(Jwt.TokenGetUid(token))
-		c.JSON(200, iprecord)
-	} else {
+	token, err := c.Cookie("token")
+	if err != nil {
+		logger.Errorf("token获取错误:%#v", err)
+		return
+	}
+	ok, uid := common.VerifyUser(c.ClientIP(), token)
+	logger.Infow("用户操作 获取IP记录:",
+		"ip", c.ClientIP(),
+		"uid", uid,
+		"token", token,
+		"ok", ok,
+	)
+	if ok == false {
 		c.JSON(401, gin.H{
 			"message": "NO",
 			"error":   3,
 			"status":  401,
 		})
+		return
 	}
+	iprecord := Mysql.GetIpRecord(Jwt.TokenGetUid(token))
+	c.JSON(200, iprecord)
 }

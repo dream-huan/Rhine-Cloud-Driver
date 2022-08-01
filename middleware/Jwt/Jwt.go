@@ -3,6 +3,7 @@ package Jwt
 import (
 	"github.com/dgrijalva/jwt-go"
 	"golandproject/Class"
+	logger "golandproject/middleware/Log"
 	"time"
 )
 
@@ -16,6 +17,9 @@ func GenerateToken(uid string, ip string) (string, error) {
 		},
 	}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"))
+	if err != nil {
+		logger.Errorf("JWT的token生成错误:%#v", err)
+	}
 	return token, err
 }
 
@@ -24,12 +28,14 @@ func TokenValid(token string, ip string) bool {
 		return []byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"), nil
 	})
 	if err != nil {
+		logger.Errorf("JWT的token提取值错误:%#v", err)
 		return false
 	}
 	if tokenClaims != nil {
-		claims, ok := tokenClaims.Claims.(*Class.CustomClaims)
+		_, ok := tokenClaims.Claims.(*Class.CustomClaims)
 		//fmt.Printf("%#v %#v %#v %#v", ok, tokenClaims.Valid, claims, ip)
-		if ok && tokenClaims.Valid && claims.StandardClaims.Audience == ip {
+		//if ok && tokenClaims.Valid && claims.StandardClaims.Audience == ip {
+		if ok && tokenClaims.Valid {
 			return true
 		}
 	}
@@ -37,9 +43,13 @@ func TokenValid(token string, ip string) bool {
 }
 
 func TokenGetUid(token string) (uid string) {
-	tokenClaims, _ := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte("MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY-wGXL5_W06841Gd"), nil
 	})
+	if err != nil {
+		logger.Errorf("JWT的得到uid错误:%#v", err)
+		return ""
+	}
 	claims, _ := tokenClaims.Claims.(*Class.CustomClaims)
 	return claims.Uid
 }

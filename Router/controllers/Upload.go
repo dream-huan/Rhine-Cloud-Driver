@@ -1,17 +1,118 @@
 package controllers
 
 import (
+	"crypto/md5"
+	"fmt"
+	"golandproject/Class"
+	"golandproject/common"
+	logger "golandproject/middleware/Log"
+	"golandproject/middleware/Mysql"
+	"golandproject/middleware/Redis"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
-	"golandproject/middleware/Jwt"
-	"log"
 )
 
-//不对最大容量进行限制
-//router.MaxMultipartMemory = 16 << 20
+var pwd, _ = os.Getwd()
+var baseURL = pwd + "/upload/"
+
+func Mkdir(c *gin.Context) {
+	token, err := c.Cookie("token")
+	if err != nil {
+		logger.Errorf("token获取错误:%#v", err)
+		return
+	}
+	var json Class.Mkdir
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		logger.Errorf("JSON转化错误:%#v", err)
+		return
+	}
+	ok, uid := common.VerifyUser(c.ClientIP(), token)
+	logger.Infow("用户操作 新建文件夹:",
+		"ip", c.ClientIP(),
+		"uid", uid,
+		"token", token,
+		"ok", ok,
+		"dirname", json.Filename,
+		"parentid", json.Parentid,
+	)
+	if ok == false {
+		c.JSON(401, gin.H{
+			"message": "NO",
+			"error":   3,
+			"status":  401,
+		})
+		return
+	}
+	if Mysql.Mkdir(uid, json.Filename+"/", json.Filename, json.Parentid) {
+		c.JSON(200, gin.H{
+			"message": "OK",
+			"status":  200,
+		})
+	} else {
+		c.JSON(200, gin.H{
+			"message": "NO",
+			"error":   13,
+			"status":  200,
+		})
+	}
+}
+
+func RequestUpload(c *gin.Context) {
+	token, err := c.Cookie("token")
+	if err != nil {
+		logger.Errorf("token获取错误:%#v", err)
+		return
+	}
+	ok, uid := common.VerifyUser(c.ClientIP(), token)
+	logger.Infow("用户操作 获取上传密钥:",
+		"ip", c.ClientIP(),
+		"uid", uid,
+		"token", token,
+		"ok", ok,
+	)
+	if ok == false {
+		c.JSON(401, gin.H{
+			"message": "NO",
+			"error":   3,
+			"status":  401,
+		})
+		return
+	}
+	key := Redis.AddUploadKey()
+	c.JSON(200, gin.H{
+		"message": "OK",
+		"status":  200,
+		"key":     key,
+	})
+}
+
 func Upload(c *gin.Context) {
-	token, _ := c.Cookie("token")
-	ip := Jwt.TokenGetIp(token)
-	if token == "" || ip == "0.0.0.0" {
+	token, err := c.Cookie("token")
+	if err != nil {
+		logger.Errorf("token获取错误:%#v", err)
+		return
+	}
+	form, err := c.MultipartForm()
+	if err != nil {
+		logger.Errorf("获取form错误:%#v", err)
+		return
+	}
+	ok, uid := common.VerifyUser(c.ClientIP(), token)
+	logger.Infow("用户操作 上传文件:",
+		"ip", c.ClientIP(),
+		"uid", uid,
+		"token", token,
+		"ok", ok,
+		"key", c.Param("key"),
+		"filelen", len(form.File["upload[]"]),
+		"parentid", form.Value["parentid"][0],
+	)
+	if ok == false {
 		c.JSON(401, gin.H{
 			"message": "NO",
 			"error":   3,
@@ -19,26 +120,113 @@ func Upload(c *gin.Context) {
 		})
 		return
 	}
-	if !Jwt.TokenValid(token, ip) {
-		c.JSON(401, gin.H{
+	if !Redis.GetUploadKey(c.Param("key")) {
+		c.JSON(200, gin.H{
 			"message": "NO",
-			"error":   3,
-			"status":  401,
+			"error":   15,
+			"status":  200,
 		})
 		return
 	}
-	// Multipart form
-	form, _ := c.MultipartForm()
 	files := form.File["upload[]"]
-	for _, file := range files {
-		log.Println(file.Filename)
-		// Upload the file to specific dst.
-		c.SaveUploadedFile(file, "D:/golandproject/upload/"+file.Filename)
+	parentid, err := strconv.ParseInt(form.Value["parentid"][0], 10, 64)
+	if err != nil {
+		logger.Errorf("对parentid执行ParseInt错误:%#v", err)
+		return
 	}
-	//c.String(http.StatusOK, fmt.Sprintf("%d files uploaded!", len(files)))
+	for _, file := range files {
+		//md5值计算，同md5值的文件合并节省储存空间
+		fileContent, err := file.Open()
+		if err != nil {
+			logger.Errorf("文件打开错误:%#v", err)
+			return
+		}
+		byteContainer, err := ioutil.ReadAll(fileContent)
+		if err != nil {
+			logger.Errorf("文件转化为字节容器错误:%#v", err)
+			return
+		}
+		md5result := md5.Sum(byteContainer)
+		md5Str := fmt.Sprintf("%x", md5result)
+		if fileid, filesize := Mysql.Md5Query(md5Str); fileid != 0 {
+			if !Mysql.JudgeStorage(uid, filesize) {
+				c.JSON(200, gin.H{
+					"message": "NO",
+					"status":  200,
+				})
+				return
+			}
+			if !Mysql.JudgeStorage(uid, filesize) {
+				c.JSON(200, gin.H{
+					"message": "NO",
+					"error":   23,
+					"status":  200,
+				})
+				return
+			}
+			Mysql.AddOldFile(uid, file.Filename, md5Str, "/", fileid, filesize, parentid)
+			Mysql.ChangeStorage(uid, filesize, "+")
+			continue
+		}
+		newFileName := uid + "_" + common.RandStringRunes(8) + "_"
+		for _, v := range file.Filename {
+			if v == ',' {
+				newFileName = newFileName + "_"
+			} else {
+				newFileName = newFileName + string(v)
+			}
+		}
+		c.SaveUploadedFile(file, baseURL+uid+"/"+newFileName)
+		fi, err := os.Stat(baseURL + uid + "/" + newFileName)
+		if err != nil {
+			logger.Errorf("文件状态错误:%#v", err)
+		}
+		if !Mysql.JudgeStorage(uid, fi.Size()) {
+			c.JSON(200, gin.H{
+				"message": "NO",
+				"error":   23,
+				"status":  200,
+			})
+			return
+		}
+		Mysql.AddFile(uid, newFileName, md5Str, "/", file.Filename, fi.Size(), parentid)
+		Mysql.ChangeStorage(uid, fi.Size(), "+")
+	}
 	c.JSON(200, gin.H{
 		"message": "OK",
 		"file":    len(files),
 		"status":  200,
+	})
+}
+
+func UploadAvatar(c *gin.Context) {
+	token, err := c.Cookie("token")
+	if err != nil {
+		logger.Errorf("token获取错误:%#v", err)
+		return
+	}
+	ok, uid := common.VerifyUser(c.ClientIP(), token)
+	logger.Infow("用户操作 上传头像:",
+		"ip", c.ClientIP(),
+		"uid", uid,
+		"token", token,
+		"ok", ok,
+	)
+	if ok == false {
+		c.JSON(401, gin.H{
+			"message": "NO",
+			"error":   3,
+			"status":  401,
+		})
+		return
+	}
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		logger.Errorf("form获取错误:%#v", err)
+	}
+	c.SaveUploadedFile(file, baseURL+uid+".png")
+	c.JSON(200, gin.H{
+		"name":   uid + ".png",
+		"status": "done",
 	})
 }

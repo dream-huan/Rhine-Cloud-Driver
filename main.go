@@ -4,5 +4,4 @@ import "golandproject/Router"
 
 func main() {
 	Router.InitRouter()
-
 }

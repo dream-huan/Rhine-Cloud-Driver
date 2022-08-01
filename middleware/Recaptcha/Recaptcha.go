@@ -3,20 +3,32 @@ package Recaptcha
 import (
 	"encoding/json"
 	"golandproject/Class"
+	logger "golandproject/middleware/Log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 )
 
 const privatekey = "6LdQ2vsfAAAAAN1e4mUhc9j4-vZd0k0iUHaNIgKR"
+
+//const privatekey = "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"
 const recaptchaServerName = "https://recaptcha.net/recaptcha/api/siteverify"
 
 func VerifyToken(token string) bool {
-	resp, _ := http.PostForm(recaptchaServerName,
+	resp, err := http.PostForm(recaptchaServerName,
 		url.Values{"secret": {privatekey}, "response": {token}})
+	if err != nil {
+		logger.Errorf("httppost错误:%#v", err)
+	}
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Errorf("ioutil的read方法错误:%#v", err)
+	}
 	var result Class.RecaptchaToken
-	_ = json.Unmarshal(body, &result)
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		logger.Errorf("对recaptcha结果处理错误:%#v", err)
+	}
 	return result.Success
 }
