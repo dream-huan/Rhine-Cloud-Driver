@@ -5,7 +5,11 @@ import (
 
 	"github.com/dream-huan/Rhine-Cloud-Driver/Router"
 	"github.com/dream-huan/Rhine-Cloud-Driver/config"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Jwt"
 	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Mysql"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Recaptcha"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Redis"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
@@ -23,7 +27,15 @@ func initConfig() {
 	}
 }
 
+func initService() {
+	Jwt.Init(cf.JwtKey.Key)
+	Recaptcha.Init(cf.GoogleRecaptchaPrivateKey.Key)
+	Redis.Init(cf)
+	Mysql.Init(cf)
+}
+
 func main() {
 	initConfig()
-	Router.InitRouter()
+	initService()
+	Router.InitRouter(cf)
 }

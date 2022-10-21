@@ -3,10 +3,15 @@ package Jwt
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
-	"github.com/dream-huan/Rhine-Cloud-Driver/config"
 	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
 	"time"
 )
+
+var jwtkey string
+
+func Init(key string) {
+	jwtkey = key
+}
 
 func GenerateToken(uid string, ip string) (string, error) {
 	expireTime := time.Now().Add(time.Second * 60 * 60 * 24 * 7) //登录有效期为7天
@@ -17,7 +22,7 @@ func GenerateToken(uid string, ip string) (string, error) {
 			Audience:  ip,
 		},
 	}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(config.GetJwtKey()))
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtkey))
 	if err != nil {
 		logger.Errorf("JWT的token生成错误:%#v", err)
 	}
@@ -26,7 +31,7 @@ func GenerateToken(uid string, ip string) (string, error) {
 
 func TokenValid(token string, ip string) bool {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.GetJwtKey()), nil
+		return []byte(jwtkey), nil
 	})
 	if err != nil {
 		logger.Errorf("JWT的token提取值错误:%#v", err)
@@ -45,7 +50,7 @@ func TokenValid(token string, ip string) bool {
 
 func TokenGetUid(token string) (uid string) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.GetJwtKey()), nil
+		return []byte(jwtkey), nil
 	})
 	if err != nil {
 		logger.Errorf("JWT的得到uid错误:%#v", err)
@@ -57,7 +62,7 @@ func TokenGetUid(token string) (uid string) {
 
 func TokenGetIp(token string) (uid string) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.GetJwtKey()), nil
+		return []byte(jwtkey), nil
 	})
 	if err != nil {
 		return "0.0.0.0"
@@ -68,7 +73,7 @@ func TokenGetIp(token string) (uid string) {
 
 func ParseToken(token string) (*Class.CustomClaims, error) {
 	tokenClaims, err := jwt.ParseWithClaims(token, &Class.CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.GetJwtKey()), nil
+		return []byte(jwtkey), nil
 	})
 	if err != nil {
 		return nil, err

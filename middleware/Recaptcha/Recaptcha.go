@@ -3,7 +3,6 @@ package Recaptcha
 import (
 	"encoding/json"
 	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
-	"github.com/dream-huan/Rhine-Cloud-Driver/config"
 	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
 	"io/ioutil"
 	"net/http"
@@ -15,9 +14,15 @@ import (
 // const privatekey = "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"
 const recaptchaServerName = "https://recaptcha.net/recaptcha/api/siteverify"
 
+var privatekey string
+
+func Init(key string) {
+	privatekey = key
+}
+
 func VerifyToken(token string) bool {
 	resp, err := http.PostForm(recaptchaServerName,
-		url.Values{"secret": {config.GetPrivateKey()}, "response": {token}})
+		url.Values{"secret": {privatekey}, "response": {token}})
 	if err != nil {
 		logger.Errorf("httppost错误:%#v", err)
 	}

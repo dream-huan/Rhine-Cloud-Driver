@@ -1,9 +1,5 @@
 package config
 
-import (
-	"os"
-)
-
 type Config struct {
 	Server                    ServerConfig              `yaml:"server"`
 	RedisManager              RedisConfig               `yaml:"redis"`
@@ -25,6 +21,7 @@ type MysqlConfig struct {
 	Address  string `yaml:"addr"`
 	User     string `yaml:"user"`
 	Password string `yaml:"pwd"`
+	Database string `yaml:"database"`
 }
 
 type RecaptchaPrivateKeyConfig struct {
@@ -33,17 +30,4 @@ type RecaptchaPrivateKeyConfig struct {
 
 type JwtConfig struct {
 	Key string `yaml:"key"`
-}
-
-var pwd, _ = os.Getwd()
-var privatekey = ""
-var originstorage int64
-var jwtkey = ""
-
-func GetPrivateKey() string {
-	return privatekey
-}
-
-func GetJwtKey() string {
-	return jwtkey
 }

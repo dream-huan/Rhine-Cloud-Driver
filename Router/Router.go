@@ -2,11 +2,12 @@ package Router
 
 import (
 	"github.com/dream-huan/Rhine-Cloud-Driver/Router/controllers"
+	"github.com/dream-huan/Rhine-Cloud-Driver/config"
 
 	"github.com/gin-gonic/gin"
 )
 
-func InitRouter() *gin.Engine {
+func InitRouter(cf config.Config) *gin.Engine {
 	router := gin.Default()
 	var v1 = router.Group("/api/v1")
 	v1.POST("/register", controllers.Register)
@@ -35,6 +36,6 @@ func InitRouter() *gin.Engine {
 	v1.DELETE("/deletefile", controllers.DeleteFile)
 	v1.DELETE("/deletefiles", controllers.DeleteFiles)
 	v1.DELETE("/deleteshare", controllers.DeleteShare)
-	router.Run(":8888")
+	router.Run(cf.Server.Host)
 	return router
 }

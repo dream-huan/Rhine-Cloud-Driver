@@ -3,13 +3,14 @@ server:
   name: rhine-cloud-driver
 
 redis:
-  addr: "0.0.0.0:6381"
+  addr: "0.0.0.0:6379"
   pwd:
 
 mysql:
-  addr:
-  user:
-  pwd:
+  addr: "0.0.0.0:3306"
+  user: "root"
+  pwd: "SUIbianla123"
+  database: "project"
 
 googlerecaptchaprivatekey:
   key: "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"

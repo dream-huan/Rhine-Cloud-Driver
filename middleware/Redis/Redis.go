@@ -3,20 +3,39 @@ package Redis
 import (
 	"context"
 	"github.com/dream-huan/Rhine-Cloud-Driver/common"
+	"github.com/dream-huan/Rhine-Cloud-Driver/config"
+	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
 	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
 	"time"
 )
 
 var ctx = context.Background()
 var rdb *redis.Client
 
-func init() {
+func Init(cf config.Config) error {
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     cf.RedisManager.Address,
+		Password: cf.RedisManager.Password, // no password set
+		DB:       0,                        // use default DB
 	})
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		logger.Error("InitRedis ping error", zap.Error(err), zap.String("pong", pong))
+		return err
+	}
+
+	logger.Info("InitRedis success!")
+	return nil
 }
+
+// func init() {
+// 	rdb = redis.NewClient(&redis.Options{
+// 		Addr:     "localhost:6379",
+// 		Password: "", // no password set
+// 		DB:       0,  // use default DB
+// 	})
+// }
 
 func GetDownloadKey(key string) (bool, string) {
 	val, err := rdb.Get(ctx, key).Result()

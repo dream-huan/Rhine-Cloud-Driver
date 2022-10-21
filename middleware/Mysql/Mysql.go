@@ -3,12 +3,14 @@ package Mysql
 import (
 	"database/sql"
 	"fmt"
+	"os"
+
 	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
 	"github.com/dream-huan/Rhine-Cloud-Driver/common"
+	"github.com/dream-huan/Rhine-Cloud-Driver/config"
 	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Geoip2"
 	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
 	_ "github.com/go-sql-driver/mysql"
-	"os"
 )
 
 var db *sql.DB
@@ -16,9 +18,10 @@ var db *sql.DB
 var pwd, _ = os.Getwd()
 var baseURL = pwd + "/upload/"
 
-func init() {
+func Init(cf config.Config) {
 	var err error
-	dsn := "root:SUIbianla123@tcp(127.0.0.1:3306)/project"
+	// dsn := "root:SUIbianla123@tcp(127.0.0.1:3306)/project"
+	dsn := cf.MysqlManager.User + ":" + cf.MysqlManager.Password + "@tcp(" + cf.Server.Host + ")/" + cf.MysqlManager.Database
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {
 		logger.Errorf("数据库链接错误:%#v", err)
@@ -26,6 +29,17 @@ func init() {
 	}
 	db.SetMaxOpenConns(100)
 }
+
+// func init() {
+// 	var err error
+// 	dsn := "root:SUIbianla123@tcp(127.0.0.1:3306)/project"
+// 	db, err = sql.Open("mysql", dsn)
+// 	if err != nil {
+// 		logger.Errorf("数据库链接错误:%#v", err)
+// 		fmt.Printf("%#v", err)
+// 	}
+// 	db.SetMaxOpenConns(100)
+// }
 
 func AddUser(uid string, password string, email string) bool {
 	tx, err := db.Begin()
