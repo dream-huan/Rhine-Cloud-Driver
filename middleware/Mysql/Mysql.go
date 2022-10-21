@@ -3,12 +3,11 @@ package Mysql
 import (
 	"database/sql"
 	"fmt"
+	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
+	"github.com/dream-huan/Rhine-Cloud-Driver/common"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Geoip2"
+	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
 	_ "github.com/go-sql-driver/mysql"
-	"golandproject/Class"
-	"golandproject/common"
-	"golandproject/config"
-	"golandproject/middleware/Geoip2"
-	logger "golandproject/middleware/Log"
 	"os"
 )
 
@@ -42,7 +41,7 @@ func AddUser(uid string, password string, email string) bool {
 		return false
 	}
 	sqlStr = "insert into storage values(?,?,?)"
-	_, err = tx.Exec(sqlStr, uid, 0, config.GetOriginStorage()) //新用户分配1G内存
+	_, err = tx.Exec(sqlStr, uid, 0, 1073741824) //新用户分配1G内存
 	if err != nil {
 		tx.Rollback()
 		logger.Errorf("事务执行错误:%#v", err)

@@ -1,13 +1,13 @@
 package controllers
 
 import (
+	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
+	"github.com/dream-huan/Rhine-Cloud-Driver/common"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Jwt"
+	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Mysql"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Recaptcha"
 	"github.com/gin-gonic/gin"
-	"golandproject/Class"
-	"golandproject/common"
-	"golandproject/middleware/Jwt"
-	logger "golandproject/middleware/Log"
-	"golandproject/middleware/Mysql"
-	"golandproject/middleware/Recaptcha"
 	"net/http"
 	"os"
 )

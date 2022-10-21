@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
+	"github.com/dream-huan/Rhine-Cloud-Driver/common"
+	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Mysql"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Redis"
 	"github.com/gin-gonic/gin"
-	"golandproject/Class"
-	"golandproject/common"
-	logger "golandproject/middleware/Log"
-	"golandproject/middleware/Mysql"
-	"golandproject/middleware/Redis"
 	"net/http"
 	"os"
 	"strconv"
@@ -34,7 +34,7 @@ func SplitPath(path, uid string) (parentid int64) {
 	return parentid
 }
 
-//todo:不能移动到自己的子目录下，后端需要限制
+// todo:不能移动到自己的子目录下，后端需要限制
 func MoveFiles(c *gin.Context) {
 	var json Class.MoveFiles
 	if err := c.ShouldBindJSON(&json); err != nil {

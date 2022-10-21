@@ -2,9 +2,9 @@ package Recaptcha
 
 import (
 	"encoding/json"
-	"golandproject/Class"
-	"golandproject/config"
-	logger "golandproject/middleware/Log"
+	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
+	"github.com/dream-huan/Rhine-Cloud-Driver/config"
+	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -12,7 +12,7 @@ import (
 
 //const privatekey = "6LdQ2vsfAAAAAN1e4mUhc9j4-vZd0k0iUHaNIgKR"
 
-//const privatekey = "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"
+// const privatekey = "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"
 const recaptchaServerName = "https://recaptcha.net/recaptcha/api/siteverify"
 
 func VerifyToken(token string) bool {

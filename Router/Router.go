@@ -1,7 +1,7 @@
 package Router
 
 import (
-	"golandproject/Router/controllers"
+	"github.com/dream-huan/Rhine-Cloud-Driver/Router/controllers"
 
 	"github.com/gin-gonic/gin"
 )

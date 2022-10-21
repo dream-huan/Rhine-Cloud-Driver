@@ -2,9 +2,9 @@ package Jwt
 
 import (
 	"github.com/dgrijalva/jwt-go"
-	"golandproject/Class"
-	"golandproject/config"
-	logger "golandproject/middleware/Log"
+	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
+	"github.com/dream-huan/Rhine-Cloud-Driver/config"
+	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
 	"time"
 )
 

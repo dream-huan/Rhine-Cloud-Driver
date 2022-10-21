@@ -1,12 +1,12 @@
 package controllers
 
 import (
+	"github.com/dream-huan/Rhine-Cloud-Driver/Class"
+	"github.com/dream-huan/Rhine-Cloud-Driver/common"
+	logger "github.com/dream-huan/Rhine-Cloud-Driver/middleware/Log"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Mysql"
+	"github.com/dream-huan/Rhine-Cloud-Driver/middleware/Redis"
 	"github.com/gin-gonic/gin"
-	"golandproject/Class"
-	"golandproject/common"
-	logger "golandproject/middleware/Log"
-	"golandproject/middleware/Mysql"
-	"golandproject/middleware/Redis"
 	"net/http"
 	"strconv"
 	"time"

@@ -1,0 +1,18 @@
+server:
+  host: "0.0.0.0:8888"
+  name: rhine-cloud-driver
+
+redis:
+  addr: "0.0.0.0:6381"
+  pwd:
+
+mysql:
+  addr:
+  user:
+  pwd:
+
+googlerecaptchaprivatekey:
+  key: "6LdBFXIgAAAAAMam2T8Gih9gCOl0GhhBthRuSH3R"
+
+jwtkey:
+  key: "MTY1MjgxMDg2MHxOd3dBTkVKRFFrdEZUa0ZJTkVwVVFWcEdSMHhCUVRNeVZrMUhSbEpMUkVoUU0wZEdVMUJCVWpKYVNrd3lXVnBKUlVkRlF6TlBURkU9fPlbyxwil3sCL6pwYb_U6xI0PgydY"
